@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Depth vs Width Tutorial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            width: 90%;
+            max-width: 1200px;
+            height: 85vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 60px;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .slide-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 1.3em;
+            color: #7f8c8d;
+            font-weight: 300;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .architecture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .architecture-card {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .architecture-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .architecture-card.deep { border-top: 5px solid #FF6B6B; }
+        .architecture-card.wide { border-top: 5px solid #4ECDC4; }
+        .architecture-card.balanced { border-top: 5px solid #45B7D1; }
+
+        .architecture-visual {
+            margin: 20px 0;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .network-layers {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer {
+            border-radius: 50%;
+            border: 3px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .deep .layer { background: #FF6B6B; }
+        .wide .layer { background: #4ECDC4; }
+        .balanced .layer { background: #45B7D1; }
+
+        .bullet-points {
+            list-style: none;
+            padding: 0;
+        }
+
+        .bullet-points li {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+            font-size: 1.2em;
+            line-height: 1.5;
+        }
+
+        .bullet-points li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 6px solid #3498db;
+        }
+
+        .result-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .result-label {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 1em;
+            line-height: 1.5;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .code-block .keyword { color: #e74c3c; }
+        .code-block .string { color: #2ecc71; }
+        .code-block .comment { color: #95a5a6; font-style: italic; }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .highlight-box h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .decision-tree {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .decision-card {
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .decision-card.deep { background: linear-gradient(135deg, #FF6B6B, #e55a5a); }
+        .decision-card.wide { background: linear-gradient(135deg, #4ECDC4, #45b7aa); }
+        .decision-card.balanced { background: linear-gradient(135deg, #45B7D1, #3aa0c4); }
+
+        .image-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            color: #6c757d;
+            font-style: italic;
+            overflow: hidden;
+        }
+
+        .image-placeholder img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .takeaway-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .takeaway-card {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .takeaway-number {
+            background: #3498db;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 30px;
+                width: 95%;
+            }
+            
+            .slide-title {
+                font-size: 2em;
+            }
+            
+            .architecture-grid,
+            .results-grid,
+            .decision-tree,
+            .takeaway-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="slide-counter">1 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Network Depth vs Width</h1>
+                <p class="slide-subtitle">The Architecture Decision That Makes or Breaks Your Model</p>
+                <p class="slide-subtitle">By Akhe Akter, 23029819</p>
+            </div>
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <h3>Understanding How to Spend Your Parameter Budget Wisely</h3>
+                    <p>A comprehensive tutorial on neural network architecture design</p>
+                </div>
+                <div class="image-placeholder">
+                    <img src="architecture_comparison.png" alt="Architecture Comparison">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: The Question -->
+        <div class="slide">
+            <div class="slide-counter">2 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">You Have 5,000 Parameters</h1>
+                <p class="slide-subtitle">How Do You Spend Them?</p>
+            </div>
+            <div class="slide-content">
+                <div class="architecture-grid">
+                    <div class="architecture-card deep">
+                        <h3>Deep & Narrow</h3>
+                        <p><strong>"The Skyscraper"</strong></p>
+                        <div class="architecture-visual">
+                            <div class="network-layers">
+                                <div class="layer" style="width:40px;height:40px;">64</div>
+                                <div class="layer" style="width:35px;height:35px;">32</div>
+                                <div class="layer" style="width:30px;height:30px;">16</div>
+                                <div class="layer" style="width:25px;height:25px;">8</div>
+                            </div>
+                        </div>
+                        <p>4 hidden layers<br>~5,200 parameters</p>
+                    </div>
+                    <div class="architecture-card wide">
+                        <h3>Shallow & Wide</h3>
+                        <p><strong>"The Stadium"</strong></p>
+                        <div class="architecture-visual">
+                            <div class="network-layers">
+                                <div class="layer" style="width:80px;height:80px;">128</div>
+                            </div>
+                        </div>
+                        <p>1 hidden layer<br>~5,100 parameters</p>
+                    </div>
+                    <div class="architecture-card balanced">
+                        <h3>Balanced</h3>
+                        <p><strong>"The Office"</strong></p>
+                        <div class="architecture-visual">
+                            <div class="network-layers">
+                                <div class="layer" style="width:50px;height:50px;">64</div>
+                                <div class="layer" style="width:40px;height:40px;">32</div>
+                            </div>
+                        </div>
+                        <p>2 hidden layers<br>~4,900 parameters</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Why It Matters -->
+        <div class="slide">
+            <div class="slide-counter">3 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Why This Matters</h1>
+                <p class="slide-subtitle">Same Parameters, Different Performance</p>
+            </div>
+            <div class="slide-content">
+                <ul class="bullet-points">
+                    <li><strong>The Problem:</strong> Architecture choice can mean the difference between 60% and 95% accuracy</li>
+                    <li><strong>The Challenge:</strong> No universal "best" architecture</li>
+                    <li><strong>The Reality:</strong> Different problems require different solutions</li>
+                    <li><strong>The Solution:</strong> Understand when each approach works best</li>
+                </ul>
+                <div class="highlight-box">
+                    <h3>This isn't just academic theory</h3>
+                    <p>In real projects, this decision affects whether your model succeeds or fails</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: MLP Basics -->
+        <div class="slide">
+            <div class="slide-counter">4 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Quick MLP Refresher</h1>
+                <p class="slide-subtitle">Multi-Layer Perceptron Fundamentals</p>
+            </div>
+            <div class="slide-content">
+                <ul class="bullet-points">
+                    <li><strong>Structure:</strong> Input → Hidden Layer(s) → Output</li>
+                    <li><strong>Parameters:</strong> Weights + Biases between all layers</li>
+                    <li><strong>Parameter Count:</strong> (Layer₁ × Layer₂) + (Layer₂ × Layer₃) + ... + biases</li>
+                    <li><strong>Key Insight:</strong> Total parameters = computational budget</li>
+                </ul>
+                <div class="code-block">
+                    <span class="comment"># Parameter calculation example</span><br>
+                    <span class="keyword">def</span> count_parameters(layers):<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;total = <span class="string">0</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span> i in range(len(layers)-<span class="string">1</span>):<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total += layers[i] * layers[i+<span class="string">1</span>] + layers[i+<span class="string">1</span>]<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> total
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Experiment Setup -->
+        <div class="slide">
+            <div class="slide-counter">5 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">The Experiment Setup</h1>
+                <p class="slide-subtitle">Testing Three Architectures on Three Complexity Levels</p>
+            </div>
+            <div class="slide-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                    <div>
+                        <h3 style="color: #3498db; margin-bottom: 20px;">Architectures (~5,000 parameters each)</h3>
+                        <ul class="bullet-points">
+                            <li><span style="color: #FF6B6B;">●</span> Deep & Narrow: 64→32→16→8</li>
+                            <li><span style="color: #4ECDC4;">●</span> Shallow & Wide: 128 neurons</li>
+                            <li><span style="color: #45B7D1;">●</span> Balanced: 64→32</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: #e74c3c; margin-bottom: 20px;">Dataset Complexity Levels</h3>
+                        <ul class="bullet-points">
+                            <li><strong>Simple:</strong> Linearly separable circles</li>
+                            <li><strong>Moderate:</strong> Non-linear moons with noise</li>
+                            <li><strong>Complex:</strong> High-dimensional (100 features, 3 classes)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <h3>Controlled Experiment</h3>
+                    <p>Fair comparison ensuring same computational budget across different problem types</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Results -->
+        <div class="slide">
+            <div class="slide-counter">6 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">The Results</h1>
+                <p class="slide-subtitle">A Clear Pattern Emerges</p>
+            </div>
+            <div class="slide-content">
+                <div class="image-placeholder">
+                    <img src="results_comparison.png" alt="Results Comparison">
+                </div>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <div class="result-value">100%</div>
+                        <div class="result-label">Simple Problems<br>All Equal</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value">99.5%</div>
+                        <div class="result-label">Moderate Problems<br>Deep Wins</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value">100%</div>
+                        <div class="result-label">Complex Problems<br>Multiple Winners</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Training Dynamics -->
+        <div class="slide">
+            <div class="slide-counter">7 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Training Dynamics Tell a Story</h1>
+                <p class="slide-subtitle">How Different Architectures Learn</p>
+            </div>
+            <div class="slide-content">
+                <div class="image-placeholder">
+                    <img src="training_curves.png" alt="Training Curves">
+                </div>
+                <ul class="bullet-points">
+                    <li><span style="color: #FF6B6B;">●</span> <strong>Deep Networks:</strong> Slower start, steady improvement, excellent final performance</li>
+                    <li><span style="color: #4ECDC4;">●</span> <strong>Shallow Networks:</strong> Quick initial learning, earlier plateau</li>
+                    <li><span style="color: #45B7D1;">●</span> <strong>Balanced Networks:</strong> Middle ground in learning speed and performance</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 8: Why These Differences -->
+        <div class="slide">
+            <div class="slide-counter">8 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Why These Differences Happen</h1>
+                <p class="slide-subtitle">The Science Behind the Results</p>
+            </div>
+            <div class="slide-content">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px;">
+                    <div style="background: linear-gradient(145deg, #FF6B6B, #e55a5a); color: white; padding: 25px; border-radius: 12px;">
+                        <h3>Deep Networks</h3>
+                        <ul style="list-style: none; padding: 0; margin-top: 15px;">
+                            <li>✓ Build hierarchical representations</li>
+                            <li>✓ Better for complex, non-linear patterns</li>
+                            <li>✗ More prone to vanishing gradients</li>
+                            <li>✗ Slower initial training</li>
+                        </ul>
+                    </div>
+                    <div style="background: linear-gradient(145deg, #4ECDC4, #45b7aa); color: white; padding: 25px; border-radius: 12px;">
+                        <h3>Shallow Networks</h3>
+                        <ul style="list-style: none; padding: 0; margin-top: 15px;">
+                            <li>✓ Learn many simple patterns simultaneously</li>
+                            <li>✓ Faster training on simple problems</li>
+                            <li>✓ More stable gradients</li>
+                            <li>✗ Limited representational capacity</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 30px;">
+                    <h3>Universal Approximation Theorem</h3>
+                    <p>Any continuous function can be approximated by a single hidden layer network with enough neurons, but depth can make this more efficient</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Decision Guidelines -->
+        <div class="slide">
+            <div class="slide-counter">9 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Practical Decision Guidelines</h1>
+                <p class="slide-subtitle">When to Choose Each Architecture</p>
+            </div>
+            <div class="slide-content">
+                <div class="decision-tree">
+                    <div class="decision-card deep">
+                        <h3>Go Deep & Narrow</h3>
+                        <br>
+                        <p>✓ Hierarchical problem structure</p>
+                        <p>✓ Complex non-linear relationships</p>
+                        <p>✓ Time for longer training</p>
+                        <p>✓ Want best possible accuracy</p>
+                    </div>
+                    <div class="decision-card wide">
+                        <h3>Go Shallow & Wide</h3>
+                        <br>
+                        <p>✓ Relatively simple problem</p>
+                        <p>✓ Need fast training/inference</p>
+                        <p>✓ Linear relationships dominate</p>
+                        <p>✓ Want quick results</p>
+                    </div>
+                    <div class="decision-card balanced">
+                        <h3>Go Balanced</h3>
+                        <br>
+                        <p>✓ Unsure about problem complexity</p>
+                        <p>✓ Want robustness across types</p>
+                        <p>✓ Need a safe default choice</p>
+                        <p>✓ Moderate computational budget</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Code Implementation -->
+        <div class="slide">
+            <div class="slide-counter">10 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Code Implementation</h1>
+                <p class="slide-subtitle">Implementing Your Choice in Keras</p>
+            </div>
+            <div class="slide-content">
+                <div class="code-block">
+<span class="comment"># Deep & Narrow (Skyscraper)</span><br>
+model = Sequential([<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Input(shape=(input_dim,)),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(<span class="string">64</span>, activation=<span class="string">'relu'</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(<span class="string">32</span>, activation=<span class="string">'relu'</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(<span class="string">16</span>, activation=<span class="string">'relu'</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(<span class="string">8</span>, activation=<span class="string">'relu'</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(output_units, activation=<span class="string">'sigmoid'</span>)<br>
+])<br><br>
+
+<span class="comment"># Shallow & Wide (Stadium)</span><br>
+model = Sequential([<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Input(shape=(input_dim,)),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(<span class="string">128</span>, activation=<span class="string">'relu'</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dense(output_units, activation=<span class="string">'sigmoid'</span>)<br>
+])
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Key Takeaways -->
+        <div class="slide">
+            <div class="slide-counter">11 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Key Takeaways</h1>
+                <p class="slide-subtitle">Three Things to Remember</p>
+            </div>
+            <div class="slide-content">
+                <div class="takeaway-grid">
+                    <div class="takeaway-card">
+                        <div class="takeaway-number">1</div>
+                        <h3>Parameter Budget Matters</h3>
+                        <p>It's not just about having more parameters - how you distribute them is crucial for performance</p>
+                    </div>
+                    <div class="takeaway-card">
+                        <div class="takeaway-number">2</div>
+                        <h3>Problem Complexity Guides Architecture</h3>
+                        <p>Simple problems: Any architecture works. Complex problems: Architecture choice becomes critical</p>
+                    </div>
+                    <div class="takeaway-card">
+                        <div class="takeaway-number">3</div>
+                        <h3>Consider Training Dynamics</h3>
+                        <p>Deep networks need patience but offer better representations. Shallow networks provide quick results</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Next Steps -->
+        <div class="slide">
+            <div class="slide-counter">12 / 12</div>
+            <div class="slide-header">
+                <h1 class="slide-title">Your Next Steps</h1>
+                <p class="slide-subtitle">Applying This to Your Own Projects</p>
+            </div>
+            <div class="slide-content">
+                <ul class="bullet-points">
+                    <li><strong>Step 1:</strong> Assess your problem complexity and data structure</li>
+                    <li><strong>Step 2:</strong> Consider your computational constraints and time budget</li>
+                    <li><strong>Step 3:</strong> Choose your architecture strategy based on guidelines</li>
+                    <li><strong>Step 4:</strong> Experiment and validate with your specific dataset</li>
+                </ul>
+                <div class="highlight-box">
+                    <h3>Resources</h3>
+                    <p><strong>Code Repository:</strong> <a href="https://github.com/akheakter/Machine-Learning-Tutorial">https://github.com/akheakter/Machine-Learning-Tutorial</a></p>
+                    <p><strong>Further Reading:</strong> Universal Approximation Theorem, Network Expressivity Papers</p>
+                    <p><strong>See references::</strong><a href="https://github.com/akheakter/Machine-Learning-Tutorial/blob/master/docs/references.md">references.md</a></p>
+                </div>
+                <div style="text-align: center; margin-top: 30px; font-size: 1.5em; color: #3498db; font-weight: bold;">
+                    Thank You for Your Attention!<br>
+                    <span style="font-size: 0.8em; color: #7f8c8d;">Questions & Discussion</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()" id="prevBtn">← Previous</button>
+        <button class="nav-btn" onclick="nextSlide()" id="nextBtn">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            updateNavigation();
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        function updateNavigation() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if (currentSlide < totalSlides - 1) nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                if (currentSlide > 0) previousSlide();
+            }
+        });
+
+        // Initialize
+        updateNavigation();
+    </script>
+</body>
+</html>
