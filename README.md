@@ -24,7 +24,7 @@ This tutorial demonstrates that **how you distribute your parameter budget matte
 ### Option 2: Run Experiments Yourself
 ```bash
 # Clone repository
-git clone https://github.com/akheakter/Machine-Learning-Tutorial
+git clone https://github.com/akheakter/MLNN_Tutorial
 cd Machine-Learning-Tutorial
 
 # Install dependencies
@@ -78,7 +78,7 @@ Have practical guidelines for real-world projects
 
 ## References
 
-See [references.md]('docs/reference.md')
+See [references.md]('https://github.com/akheakter/Machine-Learning-Tutorial/blob/master/docs/references.md')
 
 ## Contributing
 This tutorial was created for educational purposes. If you find errors or have suggestions:
